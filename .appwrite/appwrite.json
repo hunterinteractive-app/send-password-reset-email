@@ -1,0 +1,27 @@
+{
+  "$id": "exhibitor-connection-project",
+  "projectId": "YOUR_PROJECT_ID",
+  "functions": [
+    {
+      "$id": "send-reset-email",
+      "name": "sendResetEmail",
+      "runtime": "node-20.0",
+      "entrypoint": "index.js",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "vars": {
+        "APPWRITE_ENDPOINT": "https://sfo.cloud.appwrite.io/v1",
+        "APPWRITE_PROJECT_ID": "YOUR_PROJECT_ID",
+        "APPWRITE_API_KEY": "YOUR_API_KEY_WITH_DB_ACCESS",
+        "RESEND_API_KEY": "YOUR_RESEND_API_KEY",
+        "RESET_FROM_EMAIL": "noreply@hunterinteractive.dev",
+        "RESET_FROM_NAME": "Exhibitor Connection",
+        "RESET_FRONTEND_URL": "https://hunterinteractive.dev/reset-password"
+      }
+    }
+  ]
+}
