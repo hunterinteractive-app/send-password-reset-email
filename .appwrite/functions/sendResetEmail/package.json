@@ -1,0 +1,13 @@
+{
+  "name": "send-reset-email",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^13.0.0",
+    "resend": "^3.2.0"
+  }
+}
