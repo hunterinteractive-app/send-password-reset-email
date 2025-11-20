@@ -1,6 +1,6 @@
 {
   "$id": "exhibitor-connection-project",
-  "projectId": "YOUR_PROJECT_ID",
+  "projectId": "690694870030987a84e5",
   "functions": [
     {
       "$id": "send-reset-email",
@@ -15,7 +15,7 @@
       "logging": true,
       "vars": {
         "APPWRITE_ENDPOINT": "https://sfo.cloud.appwrite.io/v1",
-        "APPWRITE_PROJECT_ID": "YOUR_PROJECT_ID",
+        "APPWRITE_PROJECT_ID": "690694870030987a84e5",
         "APPWRITE_API_KEY": "YOUR_API_KEY_WITH_DB_ACCESS",
         "RESEND_API_KEY": "YOUR_RESEND_API_KEY",
         "RESET_FROM_EMAIL": "noreply@hunterinteractive.dev",
