@@ -1,7 +1,3 @@
-// index.js
-import { Client, Databases, Query } from "node-appwrite";
-import  Resend from "resend";
-
 export default async ({ req, res, log, error }) => {
   try {
     const body = await req.json();
@@ -11,69 +7,82 @@ export default async ({ req, res, log, error }) => {
       return res.json({ error: "Missing fields" }, 400);
     }
 
-    // Appwrite client
-    const client = new Client()
-      .setEndpoint(process.env.APPWRITE_ENDPOINT)
-      .setProject(process.env.APPWRITE_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);  // function key
+    // REST endpoint to list documents
+    const listUrl =
+      `${process.env.APPWRITE_ENDPOINT}` +
+      `/databases/${process.env.DB_ID}` +
+      `/collections/${process.env.COLLECTION_ID}/documents` +
+      `?queries[]=${encodeURIComponent(`equal("username","${username}")`)}` +
+      `&queries[]=${encodeURIComponent(`equal("arbaNumber","${arbaNumber}")`)}`;
 
-    const db = new Databases(client);
-
-    // Lookup user
-    const users = await db.listDocuments(
-      process.env.DB_ID,
-      process.env.COLLECTION_ID,
-      [
-        Query.equal("username", username),
-        Query.equal("arbaNumber", arbaNumber)
-      ]
-    );
-
-    if (users.total === 0) {
-      return res.json({ ok: false, message: "No user found" }, 404);
-    }
-
-    const user = users.documents[0];
-
-    // Generate secure token
-    const raw = username + Date.now() + Math.random();
-    const crypto = await import("crypto");
-    const token = crypto.createHash("sha256").update(raw).digest("hex");
-    const expires = Date.now() + 30 * 60 * 1000; // 30 minutes
-
-    // Update DB
-    await db.updateDocument(
-      process.env.DB_ID,
-      process.env.COLLECTION_ID,
-      user.$id,
-      {
-        passwordResetToken: token,
-        passwordResetExpires: String(expires)
-      }
-    );
-
-    // Build reset link
-    const resetUrl = `${process.env.RESET_BASE_URL}?token=${token}`;
-
-    // Send email via Resend
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    await resend.emails.send({
-      from: process.env.RESET_FROM_EMAIL,
-      to: user.email,
-      subject: "Your Password Reset Link",
-      html: `
-        <h2>Password Reset Request</h2>
-        <p>Hello ${user.name ?? ""},</p>
-        <p>Click the link below to reset your password:</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p>This link will expire in 30 minutes.</p>
-      `
+    // Request user list
+    const userRes = await fetch(listUrl, {
+      headers: {
+        "X-Appwrite-Project": process.env.APPWRITE_PROJECT_ID,
+        "X-Appwrite-Key": process.env.APPWRITE_API_KEY,
+      },
     });
 
-    return res.json({ ok: true, resetUrl });
+    const json = await userRes.json();
+
+    if (!json.documents || json.total === 0) {
+      return res.json({ ok: false, error: "User not found" }, 404);
+    }
+
+    const user = json.documents[0];
+
+    // Generate token
+    const token = crypto.randomUUID();
+    const expires = Date.now() + 30 * 60 * 1000;
+
+    // Update via REST API
+    const updateUrl =
+      `${process.env.APPWRITE_ENDPOINT}` +
+      `/databases/${process.env.DB_ID}` +
+      `/collections/${process.env.COLLECTION_ID}` +
+      `/documents/${user.$id}`;
+
+    await fetch(updateUrl, {
+      method: "patch",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Appwrite-Project": process.env.APPWRITE_PROJECT_ID,
+        "X-Appwrite-Key": process.env.APPWRITE_API_KEY,
+      },
+      body: JSON.stringify({
+        passwordResetToken: token,
+        passwordResetExpires: String(expires),
+      }),
+    });
+
+    // Send email with Resend REST API
+    const sendEmail = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.RESET_FROM_EMAIL,
+        to: user.email,
+        subject: "Your Exhibitor Connection Password Reset",
+        html: `
+          <p>You requested a password reset.</p>
+          <p>
+            Click the link below to reset your password:
+            <br>
+            <a href="${process.env.RESET_BASE_URL}?token=${token}">
+              Reset My Password
+            </a>
+          </p>
+          <p>This link expires in 30 minutes.</p>
+        `,
+      }),
+    });
+
+    return res.json({ ok: true });
   } catch (err) {
-    error(err.toString());
-    return res.json({ error: err.toString() }, 500);
+    error(String(err));
+    return res.json({ error: String(err) }, 500);
   }
 };
