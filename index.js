@@ -1,6 +1,6 @@
 // index.js
 import { Client, Databases, Query } from "node-appwrite";
-import { Resend } from "resend";
+import  Resend from "resend";
 
 export default async ({ req, res, log, error }) => {
   try {
